@@ -79,6 +79,15 @@ class Obstacle:
     def get_rect(self):
         return pygame.Rect(self.x, self.y, self.width, self.height)
 
+    def to_dict(self):
+        """Convert obstacle to dictionary format for student code"""
+        return {
+            'x': self.x,
+            'y': self.y,
+            'width': self.width,
+            'height': self.height
+        }
+
     def draw(self, screen):
         self.glow_phase += 0.05
         glow_intensity = int(60 + 40 * math.sin(self.glow_phase))
@@ -221,6 +230,35 @@ class RoboticDogSimulation:
         self.ball_pos = map_data['ball_pos']
         self.obstacles = map_data['walls']
 
+    def get_obstacle_data(self):
+        """Convert obstacles to dictionary format for student code"""
+        return [obs.to_dict() for obs in self.obstacles]
+
+    def check_collision_with_obstacles(self, x, y, buffer=25):
+        """
+        Check if a position collides with any obstacle
+
+        This is called by the game engine to prevent the dog from moving into walls.
+
+        Args:
+            x (float): X position to check
+            y (float): Y position to check
+            buffer (int): Safety buffer around obstacles (default 25px)
+
+        Returns:
+            bool: True if collision detected, False otherwise
+        """
+        dog_rect = pygame.Rect(x - self.dog.size, y - self.dog.size,
+                               self.dog.size * 2, self.dog.size * 2)
+
+        for obstacle in self.obstacles:
+            obs_rect = pygame.Rect(obstacle.x - buffer, obstacle.y - buffer,
+                                   obstacle.width + buffer * 2,
+                                   obstacle.height + buffer * 2)
+            if dog_rect.colliderect(obs_rect):
+                return True
+        return False
+
     def create_particles(self, x, y, count, color):
         for _ in range(count):
             self.particles.append(Particle(x, y, color))
@@ -244,6 +282,18 @@ class RoboticDogSimulation:
 
     def draw_dog(self):
         if not self.battery_dead:
+            # Clamp target position to window bounds
+            self.dog.target_x = max(30, min(WINDOW_WIDTH - 30, self.dog.target_x))
+            self.dog.target_y = max(50, min(WINDOW_HEIGHT - 50, self.dog.target_y))
+
+            # COLLISION DETECTION - Game engine checks if target position is safe
+            if self.check_collision_with_obstacles(self.dog.target_x, self.dog.target_y):
+                # If collision detected, revert target to current position
+                # This prevents the dog from moving into walls
+                self.dog.target_x = self.dog.x
+                self.dog.target_y = self.dog.y
+
+            # Smooth movement animation
             self.dog.velocity_x += (self.dog.target_x - self.dog.x) * 0.02
             self.dog.velocity_y += (self.dog.target_y - self.dog.y) * 0.02
             self.dog.velocity_x *= 0.88
@@ -252,6 +302,7 @@ class RoboticDogSimulation:
             self.dog.x += self.dog.velocity_x
             self.dog.y += self.dog.velocity_y
 
+            # Create trail effect when moving
             if not self.paused and abs(self.dog.velocity_x) + abs(self.dog.velocity_y) > 0.5:
                 self.trails.append(Trail(self.dog.x, self.dog.y))
                 if len(self.trails) > 15:
@@ -259,10 +310,12 @@ class RoboticDogSimulation:
 
             self.leg_phase += 0.2
 
+        # Draw trails
         for trail in self.trails:
             trail.update()
             trail.draw(self.screen)
 
+        # Draw glow effect
         glow_alpha = 70 if not self.battery_dead else 25
         for layer in range(2):
             size = 50 - layer * 15
@@ -274,11 +327,14 @@ class RoboticDogSimulation:
 
         body_color = CYAN if not self.battery_dead else (40, 80, 120)
 
+        # Draw body
         pygame.draw.ellipse(self.screen, body_color,
                             (int(self.dog.x - 30), int(self.dog.y - 15), 60, 30))
 
+        # Draw head
         pygame.draw.circle(self.screen, body_color, (int(self.dog.x + 25), int(self.dog.y)), 18)
 
+        # Draw eyes
         if not self.battery_dead:
             eye_glow = pygame.Surface((20, 20), pygame.SRCALPHA)
             pygame.draw.circle(eye_glow, (BRIGHT_CYAN[0], BRIGHT_CYAN[1], BRIGHT_CYAN[2], 150), (10, 10), 10)
@@ -289,6 +345,7 @@ class RoboticDogSimulation:
             pygame.draw.circle(self.screen, (80, 80, 80), (int(self.dog.x + 28), int(self.dog.y - 5)), 4)
             pygame.draw.circle(self.screen, (80, 80, 80), (int(self.dog.x + 28), int(self.dog.y + 5)), 4)
 
+        # Draw legs with animation
         leg_positions = [
             (self.dog.x - 18, self.dog.y + 10),
             (self.dog.x - 6, self.dog.y + 10),
@@ -468,7 +525,11 @@ class RoboticDogSimulation:
 
     def update(self):
         if not self.paused and not self.battery_dead and not self.ball['collected']:
-            self.dog.find_ball((self.ball['x'], self.ball['y']), self.obstacles)
+            # Convert obstacles to dictionary format and pass to student code
+            obstacle_data = self.get_obstacle_data()
+
+            # Call student's find_ball method with ball position and obstacle data
+            self.dog.find_ball((self.ball['x'], self.ball['y']), obstacle_data)
 
             self.dog.battery_level -= 0.04
             if self.dog.battery_level <= 0:
@@ -476,9 +537,6 @@ class RoboticDogSimulation:
                 self.battery_dead = True
                 self.create_particles(self.dog.x, self.dog.y, 25, BATTERY_RED)
                 print("Battery depleted! Dog has stopped.")
-
-            self.dog.target_x = max(30, min(WINDOW_WIDTH - 30, self.dog.target_x))
-            self.dog.target_y = max(50, min(WINDOW_HEIGHT - 50, self.dog.target_y))
 
             self.check_ball_collection()
 
@@ -561,7 +619,7 @@ def main():
         print("=" * 60)
         print("ERROR: Could not import robotic_dog.py")
         print("=" * 60)
-        print(f"Details: {e}")x
+        print(f"Details: {e}")
         print("\nMake sure you have created 'robotic_dog.py' in the same directory")
         print("with your RoboticDog, Leg, and Sensor class implementations.")
         print("=" * 60)
