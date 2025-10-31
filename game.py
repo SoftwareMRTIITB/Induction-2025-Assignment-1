@@ -21,6 +21,8 @@ BATTERY_YELLOW = (255, 220, 0)
 BATTERY_RED = (255, 60, 60)
 WALL_COLOR = (120, 60, 180)
 
+#mac sucks
+
 
 class Particle:
     def __init__(self, x, y, color):
