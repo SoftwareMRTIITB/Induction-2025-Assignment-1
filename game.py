@@ -535,19 +535,8 @@ class RoboticDogSimulation:
 
 def main():
     try:
-        from robotic_dog import RoboticDog, Leg, Sensor
-
-        my_dog = RoboticDog("Spot")
-
-        my_dog.add_leg(Leg(1, "front-left"))
-        my_dog.add_leg(Leg(2, "front-right"))
-        my_dog.add_leg(Leg(3, "back-left"))
-        my_dog.add_leg(Leg(4, "back-right"))
-
-        my_dog.add_sensor(Sensor("ultrasonic"))
-        my_dog.add_sensor(Sensor("IMU"))
-
-        my_dog.check_status()
+        from robotic_dog import RoboticDog
+        
 
         sim = RoboticDogSimulation(my_dog, map_num=1)
         print("\n=== Robotic Dog Maze Navigator ===")
@@ -561,7 +550,7 @@ def main():
         print("=" * 60)
         print("ERROR: Could not import robotic_dog.py")
         print("=" * 60)
-        print(f"Details: {e}")x
+        print(f"Details: {e}")
         print("\nMake sure you have created 'robotic_dog.py' in the same directory")
         print("with your RoboticDog, Leg, and Sensor class implementations.")
         print("=" * 60)
